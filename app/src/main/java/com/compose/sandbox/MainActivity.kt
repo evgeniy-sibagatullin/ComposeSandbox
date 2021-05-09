@@ -8,10 +8,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.Surface
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -38,6 +35,7 @@ class MainActivity : AppCompatActivity() {
     }
 }
 
+private val counterStates = mutableListOf<MutableList<MutableState<CellType?>>>()
 private var isRedMove: Boolean = true
 
 @Composable
@@ -51,8 +49,6 @@ fun MyApp(content: @Composable () -> Unit) {
 
 @Composable
 private fun MyScreenContent() {
-    val counterStates = mutableListOf<MutableList<MutableState<CellType?>>>()
-
     for (columnIndex in 0 until COLUMNS) {
         val columnState = mutableListOf<MutableState<CellType?>>()
         counterStates.add(columnState)
@@ -77,7 +73,7 @@ private fun MyScreenContent() {
                 Column {
                     for (rowIndex in 0 until ROWS) {
                         val state = columnState[rowIndex]
-                        Cell(state.value) { state.value = it }
+                        Cell(state.value, columnIndex)
                     }
                 }
             }
@@ -92,7 +88,7 @@ private fun MyScreenContent() {
 }
 
 @Composable
-private fun Cell(cellType: CellType?, fillCell: (CellType?) -> Unit) {
+private fun Cell(cellType: CellType?, columnIndex: Int) {
     Column(
         modifier = Modifier
             .size(48.dp)
@@ -105,11 +101,21 @@ private fun Cell(cellType: CellType?, fillCell: (CellType?) -> Unit) {
                 .fillMaxHeight()
                 .background(Color.Green)
                 .clickable(cellType == null) {
-                    val newCellType = if (isRedMove) CellType.RED else CellType.WHITE
-                    fillCell(newCellType)
-                    isRedMove = !isRedMove
+                    fillCellForColumn(columnIndex)
                 }) {
             if (cellType != null) CellFilling(cellType = cellType)
+        }
+    }
+}
+
+private fun fillCellForColumn(columnIndex: Int) {
+    val newCellType = if (isRedMove) CellType.RED else CellType.WHITE
+    isRedMove = !isRedMove
+
+    for (i in (ROWS - 1) downTo 0) {
+        if (counterStates[columnIndex][i].value == null ) {
+            counterStates[columnIndex][i].value = newCellType
+            break
         }
     }
 }
