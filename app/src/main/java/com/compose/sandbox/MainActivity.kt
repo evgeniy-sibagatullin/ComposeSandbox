@@ -8,8 +8,10 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.Surface
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -36,7 +38,11 @@ class MainActivity : AppCompatActivity() {
 }
 
 private val counterStates = mutableListOf<MutableList<MutableState<CellType?>>>()
+
 private var isRedMove: Boolean = true
+
+private val newCellType: CellType
+    get() = if (isRedMove) CellType.RED else CellType.WHITE
 
 @Composable
 fun MyApp(content: @Composable () -> Unit) {
@@ -58,14 +64,18 @@ private fun MyScreenContent() {
         }
     }
 
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.Bottom
-    ) {
+    Column(verticalArrangement = Arrangement.Bottom) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.Bottom
+            horizontalArrangement = Arrangement.Center
+        ) { Cell(cellType = newCellType, columnIndex = -1) }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(Color.Yellow)
+                .padding(vertical = 8.dp),
+            horizontalArrangement = Arrangement.Center
         ) {
             for (columnIndex in 0 until COLUMNS) {
                 val columnState = counterStates[columnIndex]
@@ -78,12 +88,6 @@ private fun MyScreenContent() {
                 }
             }
         }
-
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(8.dp)
-        )
     }
 }
 
@@ -99,7 +103,7 @@ private fun Cell(cellType: CellType?, columnIndex: Int) {
             modifier = Modifier
                 .fillMaxWidth()
                 .fillMaxHeight()
-                .background(Color.Green)
+                .background(Color.Blue)
                 .clickable(cellType == null) {
                     fillCellForColumn(columnIndex)
                 }) {
@@ -109,15 +113,14 @@ private fun Cell(cellType: CellType?, columnIndex: Int) {
 }
 
 private fun fillCellForColumn(columnIndex: Int) {
-    val newCellType = if (isRedMove) CellType.RED else CellType.WHITE
-    isRedMove = !isRedMove
-
     for (i in (ROWS - 1) downTo 0) {
-        if (counterStates[columnIndex][i].value == null ) {
+        if (counterStates[columnIndex][i].value == null) {
             counterStates[columnIndex][i].value = newCellType
             break
         }
     }
+
+    isRedMove = !isRedMove
 }
 
 @Composable
