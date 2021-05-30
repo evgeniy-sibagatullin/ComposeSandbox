@@ -7,6 +7,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.Button
+import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
@@ -25,7 +27,6 @@ import com.compose.sandbox.ui.theme.SandboxTheme
 import java.util.*
 
 class MainActivity : AppCompatActivity() {
-
     companion object {
         const val COLUMNS: Int = 7
         const val ROWS: Int = 6
@@ -33,41 +34,49 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent {
-            MyApp {
-                MyScreenContent()
-            }
-        }
+
+        setContent { MyApp() }
     }
 }
 
-private val counterStates = mutableListOf<MutableList<MutableState<CellType?>>>()
+private enum class CellType(val color: Color) {
+    RED(Color.Red), WHITE(Color.White)
+}
 
-private var isRedMove: Boolean = true
+private val cellStates = mutableListOf<MutableList<MutableState<CellType?>>>()
 
 private val newCellType: CellType
     get() = if (isRedMove) CellType.RED else CellType.WHITE
 
+private var isRedMove: Boolean = true
+
+private var isGameFinished: Boolean = false
+
 @Composable
-fun MyApp(content: @Composable () -> Unit) {
+private fun MyApp() {
+    SetupCellStates()
+
     SandboxTheme {
         Surface(color = Color.Blue, modifier = Modifier.fillMaxSize()) {
-            content()
+            MyScreenContent()
+        }
+    }
+}
+
+@Composable
+private fun SetupCellStates() {
+    for (columnIndex in 0 until COLUMNS) {
+        val columnState = mutableListOf<MutableState<CellType?>>()
+        cellStates.add(columnState)
+
+        for (rowIndex in 0 until ROWS) {
+            columnState.add(remember { mutableStateOf(null) })
         }
     }
 }
 
 @Composable
 private fun MyScreenContent() {
-    for (columnIndex in 0 until COLUMNS) {
-        val columnState = mutableListOf<MutableState<CellType?>>()
-        counterStates.add(columnState)
-
-        for (rowIndex in 0 until ROWS) {
-            columnState.add(remember { mutableStateOf(null) })
-        }
-    }
-
     Column(verticalArrangement = Arrangement.Bottom) {
         Column(
             modifier = Modifier
@@ -76,11 +85,18 @@ private fun MyScreenContent() {
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(
-                text = "${newCellType.name.toLowerCase(Locale.getDefault())} move",
-                color = Color.Yellow,
-                fontSize = 30.sp
-            )
+
+            if (isGameFinished) {
+                Button(
+                    onClick = { restartGame() },
+                    colors = ButtonDefaults.textButtonColors(backgroundColor = Color.Yellow)
+                ) {
+                    Text(text = "Restart", color = Color.Blue, fontSize = 30.sp)
+                }
+            } else {
+                val text = "${newCellType.name.toLowerCase(Locale.getDefault())} move"
+                Text(text = text, color = Color.Yellow, fontSize = 30.sp)
+            }
         }
 
         Row(
@@ -96,7 +112,7 @@ private fun MyScreenContent() {
             horizontalArrangement = Arrangement.Center
         ) {
             for (columnIndex in 0 until COLUMNS) {
-                val columnState = counterStates[columnIndex]
+                val columnState = cellStates[columnIndex]
 
                 Column {
                     for (rowIndex in 0 until ROWS) {
@@ -123,22 +139,13 @@ private fun Cell(cellType: CellType?, columnIndex: Int) {
                 .fillMaxHeight()
                 .background(Color.Blue)
                 .clickable(cellType == null) {
-                    fillCellForColumn(columnIndex)
+                    if (!isGameFinished) {
+                        makeMove(columnIndex)
+                    }
                 }) {
             if (cellType != null) CellFilling(cellType = cellType)
         }
     }
-}
-
-private fun fillCellForColumn(columnIndex: Int) {
-    for (i in (ROWS - 1) downTo 0) {
-        if (counterStates[columnIndex][i].value == null) {
-            counterStates[columnIndex][i].value = newCellType
-            break
-        }
-    }
-
-    isRedMove = !isRedMove
 }
 
 @Composable
@@ -159,6 +166,53 @@ private fun CellFilling(cellType: CellType) {
     }
 }
 
-enum class CellType(val color: Color) {
-    RED(Color.Red), WHITE(Color.White)
+private fun makeMove(columnIndex: Int) {
+    for (i in (ROWS - 1) downTo 0) {
+        if (cellStates[columnIndex][i].value == null) {
+            cellStates[columnIndex][i].value = newCellType
+
+            if (isWinnerMove(i, columnIndex)) {
+                isGameFinished = true
+            } else {
+                isRedMove = !isRedMove
+            }
+
+            break
+        }
+    }
+}
+
+private fun isWinnerMove(row: Int, column: Int): Boolean {
+    if (sameCellsBySide(row, column, 1, 0) > 2) return true
+    if (sameCellsBySide(row, column, 0, -1) + sameCellsBySide(row, column, 0, 1) > 2) return true
+    if (sameCellsBySide(row, column, -1, -1) + sameCellsBySide(row, column, 1, 1) > 2) return true
+    if (sameCellsBySide(row, column, 1, -1) + sameCellsBySide(row, column, -1, 1) > 2) return true
+    return false
+}
+
+private fun sameCellsBySide(row: Int, column: Int, rowShift: Int, columnShift: Int): Int {
+    var count = 0
+    var columnIndex = column + columnShift
+    var rowIndex = row + rowShift
+
+    while (columnIndex in 0 until COLUMNS && rowIndex in 0 until ROWS &&
+        cellStates[columnIndex][rowIndex].value == newCellType
+    ) {
+        count++
+        columnIndex += columnShift
+        rowIndex += rowShift
+    }
+
+    return count
+}
+
+private fun restartGame() {
+    for (columnIndex in 0 until COLUMNS) {
+        for (rowIndex in 0 until ROWS) {
+            cellStates[columnIndex][rowIndex].value = null
+        }
+    }
+
+    isGameFinished = false
+    isRedMove = !isRedMove
 }
