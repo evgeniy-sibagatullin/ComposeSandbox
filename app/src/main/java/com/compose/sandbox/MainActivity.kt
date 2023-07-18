@@ -24,7 +24,6 @@ import androidx.compose.ui.unit.sp
 import com.compose.sandbox.MainActivity.Companion.COLUMNS
 import com.compose.sandbox.MainActivity.Companion.ROWS
 import com.compose.sandbox.ui.theme.SandboxTheme
-import java.util.*
 
 class MainActivity : AppCompatActivity() {
     companion object {
@@ -94,7 +93,7 @@ private fun MyScreenContent() {
                     Text(text = "Restart", color = Color.Blue, fontSize = 30.sp)
                 }
             } else {
-                val text = "${newCellType.name.toLowerCase(Locale.getDefault())} move"
+                val text = "${newCellType.name.lowercase()} move"
                 Text(text = text, color = Color.Yellow, fontSize = 30.sp)
             }
         }
