@@ -36,6 +36,7 @@ android {
         kotlinCompilerExtensionVersion compose_version
         kotlinCompilerVersion '1.4.30'
     }
+    namespace 'com.compose.sandbox'
 }
 
 dependencies {
